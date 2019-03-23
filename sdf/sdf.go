@@ -21,7 +21,7 @@ type SDF struct {
 }
 
 // New returns a zeroed SDF of the given size
-func New(w, h int) (ret *SDF) {
+func New(w, h int) *SDF {
 	return &SDF{
 		Field: make([]float64, w*h),
 		W:     w,
