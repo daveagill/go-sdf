@@ -3,6 +3,7 @@ package sdf
 import (
 	"errors"
 	"image"
+	"image/color"
 	"math"
 )
 
@@ -116,6 +117,25 @@ func calcSDF(binMap [][]bool, pts []point) *SDF {
 	}
 
 	return sdf
+}
+
+// Draw returns an 8-bit grayscale representation of a Signed-Distance-Field
+func (sdf *SDF) Draw() *image.Gray {
+	gray := image.NewGray(image.Rect(0, 0, sdf.Width(), sdf.Height()))
+
+	for y := 0; y < sdf.Height(); y++ {
+		for x := 0; x < sdf.Width(); x++ {
+			// clamp field distance to a range [-127, 127] and then map that to [0, 255]
+			dst := sdf.At(x, y)
+			clamped := math.Max(-127, math.Min(127, dst))
+			mapped := uint8(clamped + 127)
+
+			col := color.Gray{mapped}
+			gray.Set(x, y, col)
+		}
+	}
+
+	return gray
 }
 
 // Lerp returns the linear interpolation between two SDFs, weighted by t in range [0, 1]

@@ -16,7 +16,7 @@ func main() {
 	outpath := os.Args[2]
 
 	img := imgutil.Load(inpath)
-	sdf := sdf.FromImageAlpha(img, sdf.HalfAlpha)
-	grayImg := imgutil.SDFToImage(sdf)
-	imgutil.Save(outpath, grayImg)
+	field := sdf.FromImageAlpha(img, sdf.HalfAlpha)
+	grayImg := field.Draw()
+	imgutil.SavePNG(outpath, grayImg)
 }
