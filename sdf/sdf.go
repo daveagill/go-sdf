@@ -69,7 +69,7 @@ func alphaToBinaryMap(img image.Image, at uint16) [][]bool {
 
 		for x := range binMap[y] {
 			_, _, _, alpha := img.At(b.Min.X+x, b.Min.Y+y).RGBA()
-			binMap[y][x] = alpha < uint32(at)
+			binMap[y][x] = alpha >= uint32(at)
 		}
 	}
 
