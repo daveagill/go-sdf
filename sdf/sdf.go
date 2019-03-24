@@ -81,12 +81,12 @@ func findBoundaries(binMap [][]bool) []point {
 
 	for y, row := range binMap {
 		for x, opaque := range row {
-			// a boundary must be an opaque pixel with a transparent neighbour
+			// a boundary must be an opaque pixel with a transparent (or off-image) neighbour
 			if opaque {
-				lftTransparent := x > 0 && !binMap[y][x-1]
-				rgtTransparent := x < len(row)-1 && !binMap[y][x+1]
-				topTransparent := y > 0 && !binMap[y-1][x]
-				botTransparent := y < len(binMap)-1 && !binMap[y+1][x]
+				lftTransparent := x <= 0 || !binMap[y][x-1]
+				rgtTransparent := x >= len(row)-1 || !binMap[y][x+1]
+				topTransparent := y <= 0 || !binMap[y-1][x]
+				botTransparent := y >= len(binMap)-1 || !binMap[y+1][x]
 
 				if lftTransparent || rgtTransparent || topTransparent || botTransparent {
 					boundaryPts = append(boundaryPts, point{x, y})
