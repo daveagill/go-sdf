@@ -41,7 +41,7 @@ func main() {
 	startSDF := sdf.FromImageAlpha(startImg, sdf.HalfAlpha)
 	endSDF := sdf.FromImageAlpha(endImg, sdf.HalfAlpha)
 
-	if startSDF.Width() != endSDF.Width() || startSDF.Height() != endSDF.Height() {
+	if startSDF.Width != endSDF.Width || startSDF.Height != endSDF.Height {
 		log.Fatal("Images do not have the same dimensions")
 	}
 
