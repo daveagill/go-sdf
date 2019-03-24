@@ -38,8 +38,11 @@ func main() {
 	startImg := imgutil.Load(startPath)
 	endImg := imgutil.Load(endPath)
 
-	startSDF := sdf.FromImageAlpha(startImg, sdf.HalfAlpha)
-	endSDF := sdf.FromImageAlpha(endImg, sdf.HalfAlpha)
+	startStencil := sdf.ImageAlphaStencil{Image: startImg, Alpha: sdf.HalfAlpha}
+	endStencil := sdf.ImageAlphaStencil{Image: endImg, Alpha: sdf.HalfAlpha}
+
+	startSDF := sdf.Calculate(startStencil)
+	endSDF := sdf.Calculate(endStencil)
 
 	if startSDF.Width != endSDF.Width || startSDF.Height != endSDF.Height {
 		log.Fatal("Images do not have the same dimensions")

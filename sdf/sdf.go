@@ -14,6 +14,34 @@ const (
 	HalfAlpha = uint16(math.MaxUint16 / 2)
 )
 
+// Stencil defines a binary surface where pixels are either inside or outside the stencil
+type Stencil interface {
+	// Within predicates whether the given coordinate is inside or outside of the stencil surface
+	Within(x, y int) bool
+	// Size returns the width and height of the Stencil
+	Size() (int, int)
+}
+
+// ImageAlphaStencil implements a Stencil where the alpha channel of an image is thresholded
+// against the Alpha value
+type ImageAlphaStencil struct {
+	Image image.Image
+	Alpha uint16
+}
+
+// Within predicates whether the given coordinate is inside or outside of the stencil surface
+func (s ImageAlphaStencil) Within(x, y int) bool {
+	b := s.Image.Bounds()
+	_, _, _, a := s.Image.At(b.Min.X+x, b.Min.Y+y).RGBA()
+	return a >= uint32(s.Alpha)
+}
+
+// Size returns the width and height of the ImageAlphaStencil
+func (s ImageAlphaStencil) Size() (int, int) {
+	size := s.Image.Bounds().Size()
+	return size.X, size.Y
+}
+
 // SDF models a rectangular & discretized Signed Distance Field
 type SDF struct {
 	Field  []float64
@@ -40,43 +68,23 @@ func (sdf *SDF) Set(x, y int, v float64) {
 	sdf.Field[y*sdf.Width+x] = v
 }
 
-// FromImageAlpha returns a Signed Distance Field generated from the
-// alpha channel of the image after thresholding against the given alpha-threshold.
-func FromImageAlpha(img image.Image, at uint16) *SDF {
-	binMap := alphaToBinaryMap(img, at)
-	boundaryPts := findBoundaries(binMap)
-	return calcSDF(binMap, boundaryPts)
+// Calculate a new SDF from the given Stencil
+func Calculate(s Stencil) *SDF {
+	return calcSDF(s, findBoundaries(s))
 }
 
-func alphaToBinaryMap(img image.Image, at uint16) [][]bool {
-	b := img.Bounds()
-	w := b.Size().X
-	h := b.Size().Y
-
-	binMap := make([][]bool, h)
-	for y := range binMap {
-		binMap[y] = make([]bool, w)
-
-		for x := range binMap[y] {
-			_, _, _, alpha := img.At(b.Min.X+x, b.Min.Y+y).RGBA()
-			binMap[y][x] = alpha >= uint32(at)
-		}
-	}
-
-	return binMap
-}
-
-func findBoundaries(binMap [][]bool) []point {
+func findBoundaries(s Stencil) []point {
 	boundaryPts := []point{}
 
-	for y, row := range binMap {
-		for x, opaque := range row {
-			// a boundary must be an opaque pixel with a transparent (or off-image) neighbour
-			if opaque {
-				lftTransparent := x <= 0 || !binMap[y][x-1]
-				rgtTransparent := x >= len(row)-1 || !binMap[y][x+1]
-				topTransparent := y <= 0 || !binMap[y-1][x]
-				botTransparent := y >= len(binMap)-1 || !binMap[y+1][x]
+	w, h := s.Size()
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			// boundaries are any points within the stencil that have adjacent points outside the stencil
+			if s.Within(x, y) {
+				lftTransparent := x == 0 || !s.Within(x-1, y)
+				rgtTransparent := x == w-1 || !s.Within(x+1, y)
+				topTransparent := y == 0 || !s.Within(x, y-1)
+				botTransparent := y == h-1 || !s.Within(x, y+1)
 
 				if lftTransparent || rgtTransparent || topTransparent || botTransparent {
 					boundaryPts = append(boundaryPts, point{x, y})
@@ -88,17 +96,16 @@ func findBoundaries(binMap [][]bool) []point {
 	return boundaryPts
 }
 
-func calcSDF(binMap [][]bool, pts []point) *SDF {
-	h := len(binMap)
-	w := len(binMap[0])
+func calcSDF(s Stencil, pts []point) *SDF {
+	w, h := s.Size()
 	sdf := New(w, h)
 
-	for y, row := range binMap {
-		for x, opaque := range row {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
 			dst := point{x, y}.dstFromPts(pts)
 
-			// use -ve sign if we are inside (opaque) and +ve if outside (transparent)
-			if opaque {
+			// use -ve sign if we are inside and +ve if outside
+			if s.Within(x, y) {
 				dst = -dst
 			}
 

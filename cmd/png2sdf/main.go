@@ -16,7 +16,8 @@ func main() {
 	outpath := os.Args[2]
 
 	img := imgutil.Load(inpath)
-	field := sdf.FromImageAlpha(img, sdf.HalfAlpha)
+	stencil := sdf.ImageAlphaStencil{Image: img, Alpha: sdf.HalfAlpha}
+	field := sdf.Calculate(stencil)
 	grayImg := field.Draw()
 	imgutil.SavePNG(outpath, grayImg)
 }
