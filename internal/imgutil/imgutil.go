@@ -3,11 +3,15 @@ package imgutil
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"image/gif"
 	_ "image/jpeg"
 	"image/png"
 	"log"
+	"math"
 	"os"
+
+	"github.com/daveagill/go-sdf/sdf"
 )
 
 // Load will load an image from file
@@ -72,4 +76,66 @@ func SaveGIF(path string, frames []image.Image, delay int) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// FillFromBoundaryPixels returns an image where off-surface pixels are sourced from
+// the nearest boundary pixels. Effectively extruding the boundary pixels out to the
+// borders of the image.
+func FillFromBoundaryPixels(img image.Image, df *sdf.DisplacementField) image.Image {
+	outImg := image.NewRGBA(image.Rect(0, 0, df.Width, df.Height))
+
+	for y := 0; y < df.Height; y++ {
+		for x := 0; x < df.Width; x++ {
+			if df.At(x, y) < 0 {
+				outImg.Set(x, y, img.At(x, y))
+			} else {
+				boundaryX, boundaryY := df.NearestBoundaryAt(x, y)
+				outImg.Set(x, y, img.At(boundaryX, boundaryY))
+			}
+		}
+	}
+
+	return outImg
+}
+
+// BlendedImage is an Image that tweens between two images according to its Ratio
+type BlendedImage struct {
+	From  image.Image
+	To    image.Image
+	Ratio float64
+}
+
+// ColorModel implements image.Image's ColorModel() for BlendedImage
+func (img *BlendedImage) ColorModel() color.Model {
+	return color.RGBA64Model
+}
+
+// Bounds implements image.Image's Bounds() for BlendedImage
+func (img *BlendedImage) Bounds() image.Rectangle {
+	return img.From.Bounds()
+}
+
+// At implements image.Image's At(int, int) for BlendedImage
+func (img *BlendedImage) At(x, y int) color.Color {
+	r1, g1, b1 := toRGB(img.From.At(x, y))
+	r2, g2, b2 := toRGB(img.To.At(x, y))
+
+	return color.RGBA{
+		R: lerpCol(r1, r2, img.Ratio),
+		G: lerpCol(g1, g2, img.Ratio),
+		B: lerpCol(b1, b2, img.Ratio),
+		A: 255,
+	}
+}
+
+func lerpCol(u uint16, v uint16, t float64) uint8 {
+	return uint8(uint16(float64(u)+(float64(v)-float64(u))*t) >> 8)
+}
+
+// toRGB removes the alpha component to return fully opaque non-pre-multiplied RGB values
+func toRGB(c color.Color) (uint16, uint16, uint16) {
+	r, g, b, a := c.RGBA()
+	return uint16((float64(r) / float64(a)) * math.MaxUint16),
+		uint16((float64(g) / float64(a)) * math.MaxUint16),
+		uint16((float64(b) / float64(a)) * math.MaxUint16)
 }

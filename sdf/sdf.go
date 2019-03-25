@@ -171,6 +171,27 @@ func (sdf *SDF) DrawImplicitSurface(fv float64, c color.Color, bg color.Color) *
 	return img
 }
 
+// DrawStenciledImage uses a thresholded Signed-Distance-Field to stencil into an image and returns
+// a new image where passing pixels are taken from the source image and non-passing pixels default
+// to the given background color.
+func (sdf *SDF) DrawStenciledImage(fv float64, srcImg image.Image, bg color.Color) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, sdf.Width, sdf.Height))
+
+	for y := 0; y < sdf.Height; y++ {
+		for x := 0; x < sdf.Width; x++ {
+			dst := sdf.At(x, y)
+
+			if dst <= fv { // on-surface
+				img.Set(x, y, srcImg.At(x, y))
+			} else { // off-surface (background)
+				img.Set(x, y, bg)
+			}
+		}
+	}
+
+	return img
+}
+
 // Lerp returns the linear interpolation between two SDFs, weighted by t in range [0, 1]
 func Lerp(a *SDF, b *SDF, t float64) (*SDF, error) {
 	if a.Width != b.Width {

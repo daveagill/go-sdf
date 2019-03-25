@@ -18,6 +18,7 @@ func main() {
 		numFrames  int
 		frameDelay int
 		boomerang  bool
+		blackBg    bool
 	)
 
 	flag.StringVar(&startPath, "from", "", "Required. The start image (png/jpeg/gif)")
@@ -26,6 +27,7 @@ func main() {
 	flag.IntVar(&numFrames, "frames", 10, "The number of frames to generate")
 	flag.IntVar(&frameDelay, "framedelay", 0, "The delay between frames in 100ths of a second")
 	flag.BoolVar(&boomerang, "boomerang", true, "Whether to animate back to the initial image (Doubles the number of frames)")
+	flag.BoolVar(&blackBg, "blackbg", false, "Uses black as the background color instead of white")
 	flag.Parse()
 
 	if startPath == "" {
@@ -38,21 +40,32 @@ func main() {
 	startImg := imgutil.Load(startPath)
 	endImg := imgutil.Load(endPath)
 
+	if startImg.Bounds().Size() != endImg.Bounds().Size() {
+		log.Fatal("Images do not have the same dimensions")
+	}
+
 	startStencil := sdf.ImageAlphaStencil{Image: startImg, Alpha: sdf.HalfAlpha}
 	endStencil := sdf.ImageAlphaStencil{Image: endImg, Alpha: sdf.HalfAlpha}
 
 	startField := sdf.Calculate(startStencil)
 	endField := sdf.Calculate(endStencil)
 
-	if startField.Width != endField.Width || startField.Height != endField.Height {
-		log.Fatal("Images do not have the same dimensions")
+	blendedImg := &imgutil.BlendedImage{
+		From: imgutil.FillFromBoundaryPixels(startImg, startField),
+		To:   imgutil.FillFromBoundaryPixels(endImg, endField),
+	}
+
+	bgCol := color.White
+	if blackBg {
+		bgCol = color.Black
 	}
 
 	// animate from start to end
 	frames := make([]image.Image, numFrames, numFrames*2)
 	for i := 0; i < numFrames; i++ {
-		blended, _ := sdf.Lerp(startField.SDF, endField.SDF, float64(i)/float64(numFrames-1))
-		frames[i] = blended.DrawImplicitSurface(0, color.Black, color.White)
+		blendedImg.Ratio = float64(i) / float64(numFrames-1)
+		blendedSDF, _ := sdf.Lerp(startField.SDF, endField.SDF, blendedImg.Ratio)
+		frames[i] = blendedSDF.DrawStenciledImage(blendedImg, bgCol)
 	}
 
 	// create the reverse sequence of frames to 'boomerang' back to the start
