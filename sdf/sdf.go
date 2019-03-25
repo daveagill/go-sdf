@@ -68,9 +68,44 @@ func (sdf *SDF) Set(x, y int, v float64) {
 	sdf.Field[y*sdf.Width+x] = v
 }
 
-// Calculate a new SDF from the given Stencil
-func Calculate(s Stencil) *SDF {
-	return calcSDF(s, findBoundaries(s))
+// DisplacementField is a vectorized Signed-Distance-Field where each field value is associated
+// with its nearest boundary point.
+type DisplacementField struct {
+	*SDF
+	boundaryPts []point
+}
+
+// NearestBoundaryAt returns X,Y coordinate of the nearest boundary point from the given point
+func (df *DisplacementField) NearestBoundaryAt(x, y int) (int, int) {
+	pt := df.boundaryPts[y*df.Width+x]
+	return pt.x, pt.y
+}
+
+// Calculate a new DisplacementField from the given Stencil
+func Calculate(s Stencil) *DisplacementField {
+	w, h := s.Size()
+	df := DisplacementField{
+		New(w, h),
+		make([]point, w*h),
+	}
+
+	pts := findBoundaries(s)
+
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pt, dst := point{x, y}.nearest(pts)
+
+			// use -ve sign if we are inside and +ve if outside
+			if s.Within(x, y) {
+				dst = -dst
+			}
+
+			df.Set(x, y, dst)
+			df.boundaryPts[y*w+x] = *pt
+		}
+	}
+
+	return &df
 }
 
 func findBoundaries(s Stencil) []point {
@@ -94,26 +129,6 @@ func findBoundaries(s Stencil) []point {
 	}
 
 	return boundaryPts
-}
-
-func calcSDF(s Stencil, pts []point) *SDF {
-	w, h := s.Size()
-	sdf := New(w, h)
-
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			dst := point{x, y}.dstFromPts(pts)
-
-			// use -ve sign if we are inside and +ve if outside
-			if s.Within(x, y) {
-				dst = -dst
-			}
-
-			sdf.Set(x, y, dst)
-		}
-	}
-
-	return sdf
 }
 
 // Draw returns an 8-bit grayscale representation of a Signed-Distance-Field

@@ -41,18 +41,18 @@ func main() {
 	startStencil := sdf.ImageAlphaStencil{Image: startImg, Alpha: sdf.HalfAlpha}
 	endStencil := sdf.ImageAlphaStencil{Image: endImg, Alpha: sdf.HalfAlpha}
 
-	startSDF := sdf.Calculate(startStencil)
-	endSDF := sdf.Calculate(endStencil)
+	startField := sdf.Calculate(startStencil)
+	endField := sdf.Calculate(endStencil)
 
-	if startSDF.Width != endSDF.Width || startSDF.Height != endSDF.Height {
+	if startField.Width != endField.Width || startField.Height != endField.Height {
 		log.Fatal("Images do not have the same dimensions")
 	}
 
 	// animate from start to end
 	frames := make([]image.Image, numFrames, numFrames*2)
 	for i := 0; i < numFrames; i++ {
-		field, _ := sdf.Lerp(startSDF, endSDF, float64(i)/float64(numFrames-1))
-		frames[i] = field.DrawImplicitSurface(0, color.Black, color.White)
+		blended, _ := sdf.Lerp(startField.SDF, endField.SDF, float64(i)/float64(numFrames-1))
+		frames[i] = blended.DrawImplicitSurface(0, color.Black, color.White)
 	}
 
 	// create the reverse sequence of frames to 'boomerang' back to the start
