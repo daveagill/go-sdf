@@ -7,41 +7,6 @@ import (
 	"math"
 )
 
-const (
-	// OpaqueAlpha is an alpha-threshold so fully-opaque pixels will form the boundary of the SDF
-	OpaqueAlpha = uint16(math.MaxUint16)
-	// HalfAlpha is an alpha-threshold so 50% opaque pixels will form the boundary of the SDF
-	HalfAlpha = uint16(math.MaxUint16 / 2)
-)
-
-// Stencil defines a binary surface where pixels are either inside or outside the stencil
-type Stencil interface {
-	// Within predicates whether the given coordinate is inside or outside of the stencil surface
-	Within(x, y int) bool
-	// Size returns the width and height of the Stencil
-	Size() (int, int)
-}
-
-// ImageAlphaStencil implements a Stencil where the alpha channel of an image is thresholded
-// against the Alpha value
-type ImageAlphaStencil struct {
-	Image image.Image
-	Alpha uint16
-}
-
-// Within predicates whether the given coordinate is inside or outside of the stencil surface
-func (s ImageAlphaStencil) Within(x, y int) bool {
-	b := s.Image.Bounds()
-	_, _, _, a := s.Image.At(b.Min.X+x, b.Min.Y+y).RGBA()
-	return a >= uint32(s.Alpha)
-}
-
-// Size returns the width and height of the ImageAlphaStencil
-func (s ImageAlphaStencil) Size() (int, int) {
-	size := s.Image.Bounds().Size()
-	return size.X, size.Y
-}
-
 // SDF models a rectangular & discretized Signed Distance Field
 type SDF struct {
 	Field  []float64
@@ -148,48 +113,6 @@ func (sdf *SDF) Draw() *image.Gray {
 	}
 
 	return gray
-}
-
-// DrawImplicitSurface renders the implicit surface defined by a Signed-Distance-Field into an image.
-// Using the given field-value to define the boundary, the given color to use for surface pixels &
-// the given background color to use for background pixels.
-func (sdf *SDF) DrawImplicitSurface(fv float64, c color.Color, bg color.Color) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, sdf.Width, sdf.Height))
-
-	for y := 0; y < sdf.Height; y++ {
-		for x := 0; x < sdf.Width; x++ {
-			dst := sdf.At(x, y)
-
-			if dst <= fv { // on-surface
-				img.Set(x, y, c)
-			} else { // off-surface (background)
-				img.Set(x, y, bg)
-			}
-		}
-	}
-
-	return img
-}
-
-// DrawStenciledImage uses a thresholded Signed-Distance-Field to stencil into an image and returns
-// a new image where passing pixels are taken from the source image and non-passing pixels default
-// to the given background color.
-func (sdf *SDF) DrawStenciledImage(fv float64, srcImg image.Image, bg color.Color) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, sdf.Width, sdf.Height))
-
-	for y := 0; y < sdf.Height; y++ {
-		for x := 0; x < sdf.Width; x++ {
-			dst := sdf.At(x, y)
-
-			if dst <= fv { // on-surface
-				img.Set(x, y, srcImg.At(x, y))
-			} else { // off-surface (background)
-				img.Set(x, y, bg)
-			}
-		}
-	}
-
-	return img
 }
 
 // Lerp returns the linear interpolation between two SDFs, weighted by t in range [0, 1]

@@ -65,7 +65,8 @@ func main() {
 	for i := 0; i < numFrames; i++ {
 		blendedImg.Ratio = float64(i) / float64(numFrames-1)
 		blendedSDF, _ := sdf.Lerp(startField.SDF, endField.SDF, blendedImg.Ratio)
-		frames[i] = blendedSDF.DrawStenciledImage(blendedImg, bgCol)
+		stencil := sdf.ImplicitSurfaceStencil{SDF: blendedSDF}
+		frames[i] = sdf.DrawStencilImage(stencil, blendedImg, bgCol)
 	}
 
 	// create the reverse sequence of frames to 'boomerang' back to the start
