@@ -1,5 +1,9 @@
 # go-sdf - Signed Distance Fields for Go
 
+[![Build Status](https://travis-ci.com/daveagill/go-sdf.svg?branch=master)](https://travis-ci.com/daveagill/go-sdf)
+[![GoDoc](https://godoc.org/github.com/daveagill/go-sdf/sdf?status.svg)](https://godoc.org/github.com/daveagill/go-sdf/sdf)
+[![Go Report Card](https://goreportcard.com/badge/github.com/daveagill/go-sdf)](https://goreportcard.com/report/github.com/daveagill/go-sdf)
+
 A simple Go library for creating and manipulating Signed-Distance-Fields (and Displacement-Fields) with conversion utilities to and from images.
 
 Included are two CLI commands (`png2sdf` and `gifanim`) that demonstrate some of the cool things you can do with Signed-Distance-Fields...
