@@ -1,3 +1,5 @@
+// Package sdf provides primitives for creating and manipulating Signed-Distance-Fields
+// and Displacement-Fields with conversion utilities to and from images.
 package sdf
 
 import (
