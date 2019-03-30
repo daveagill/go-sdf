@@ -53,7 +53,7 @@ func (s ImplicitSurfaceStencil) Within(x, y int) bool {
 	return s.SDF.At(x, y) <= s.Threshold
 }
 
-// Size returns the width and height of the ImageAlphaStencil
+// Size returns the width and height of the ImplicitSurfaceStencil
 func (s ImplicitSurfaceStencil) Size() (int, int) {
 	return s.SDF.Width, s.SDF.Height
 }
