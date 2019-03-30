@@ -104,9 +104,9 @@ func (sdf *SDF) Draw() *image.Gray {
 
 	for y := 0; y < sdf.Height; y++ {
 		for x := 0; x < sdf.Width; x++ {
-			// clamp field distance to a range [-127, 127] and then map that to [0, 255]
+			// clamp field distance to a range [-127, 128] and then map that to [0, 255]
 			dst := sdf.At(x, y)
-			clamped := math.Max(-127, math.Min(127, dst))
+			clamped := math.Max(-127, math.Min(128, dst))
 			mapped := uint8(clamped + 127)
 
 			col := color.Gray{mapped}
