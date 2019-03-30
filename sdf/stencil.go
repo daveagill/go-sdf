@@ -50,7 +50,7 @@ type ImplicitSurfaceStencil struct {
 
 // Within predicates whether the given coordinate is inside or outside of the stencil surface
 func (s ImplicitSurfaceStencil) Within(x, y int) bool {
-	return s.SDF.At(x, y) < s.Threshold
+	return s.SDF.At(x, y) <= s.Threshold
 }
 
 // Size returns the width and height of the ImageAlphaStencil
